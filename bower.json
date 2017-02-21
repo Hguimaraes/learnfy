@@ -1,0 +1,20 @@
+{
+  "name": "learnfy",
+  "description": "Create a music genre dataset (metadata or audio) for classification using the Spotify Web API",
+  "main": "learnfy.js",
+  "authors": [
+    "Heitor Guimarães"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Hguimaraes/learnfy",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "^1.6.2"
+  }
+}
