@@ -47,6 +47,9 @@ app.use(express.static(path.join(__dirname, public_folder)));
  * -- Configuring Routes
  */
 
+var apiRoutes = require('./app/routes/api')(app, express);
+app.use('/api', apiRoutes);
+
 // Send users to front-end
 app.get('*', function(req, res) {
   res.sendFile(path.join(__dirname + '/' + public_folder + '/index.html'));
