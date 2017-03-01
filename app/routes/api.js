@@ -2,8 +2,9 @@
  *
  */
 
-var config = require('../../config/config');
+var config        = require('../../config/config');
 var querystring   = require('querystring');
+var request       = require('request');
 
 // Util function to Generate a random string
 var generateRandomString = function(length) {
@@ -88,9 +89,9 @@ module.exports = function(app, express) {
           });
 
           // we can also pass the token to the browser to make requests from there
-          res.redirect('/#/loggedin');
+          res.redirect('/#!/loggedin');
         } else {
-          res.redirect('/#/error');
+          res.redirect('/#!/error');
         }
       });
     }
