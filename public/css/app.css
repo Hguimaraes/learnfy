@@ -2,3 +2,29 @@
  * Stylesheet for the Torch music genre app.
  * The css respect the usage of the Materialize framework
  */
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  color: #191414;
+}
+
+a {
+  color: #1DB954;
+}
+
+#terminal {
+  text-align: center;
+}
+
+#editlogo {
+  text-align: center;
+}
+
+.spotifygreen{
+  background: #1DB954;
+}
+
+#createdataset{
+  position: absolute;
+  left: 45%;
+}

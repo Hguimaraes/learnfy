@@ -1,3 +1,69 @@
 <div class="container">
-  <h1>Learnfy edit</h1>
+  <div class="row" id="editlogo">
+    <br><br>
+    <img src="imgs/learnfy_logo.jpg">
+    <br><br>
+  </div>
+  <div class="row">
+    <ul class="collection">
+      <li class="collection-item avatar">
+        <i class="material-icons circle">volume_up</i>
+        <span class="title">Audio Preview</span>
+        <p>
+          Select this option if you want to get the audio previews (mp3) from the songs
+        </p>
+        <form class="secondary-content" action="#">
+          <p>
+            <input type="checkbox" id="audioprev" ng-model="selectedOptions.audioprev" />
+            <label for="audioprev"></label>
+          </p>
+        </form>
+      </li>
+      <li class="collection-item avatar">
+        <i class="material-icons circle green">settings</i>
+        <span class="title">Audio Metadata</span>
+        <p>
+          Select this option if you want to get the metadata (Audio descriptors) from the songs
+        </p>
+        <form class="secondary-content" action="#">
+          <p>
+            <input type="checkbox" id="audiomet" ng-model="selectedOptions.audiomet" />
+            <label for="audiomet"></label>
+          </p>
+        </form>
+      </li>
+    </ul>
+  </div>
+  <div class="row">
+    <div class="col s8">
+      <p class="range-field">
+        <label> Max number of musics per genre in the dataset </label>
+        <input type="range" ng-model="selectedOptions.maxNumMusic" min="500" max="50000" />
+      </p>
+    </div>
+    <div class="col s4">
+      <div class="input-field col s12">
+        <select class="" ng-model="selectedOptions.genres" material-select multiple watch>
+          <option ng-repeat="x in genreList">{{x}}</option>
+        </select>
+        <label>Select the genres</label>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <form action="#">
+      <p>
+        <input type="checkbox" id="bkp" ng-model="selectedOptions.bkp" />
+        <label for="bkp">Create a backup file with these configurations?</label>
+      </p>
+      <a ng-click="createDataset()" class="waves-effect waves-light btn spotifygreen" id="createdataset">
+        <i class="material-icons left">send</i>Create
+      </a>
+    </form>
+  </div>
 </div>
+<script>
+  $(document).ready(function() {
+    $('select').material_select();
+  });
+</script>

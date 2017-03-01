@@ -7,7 +7,11 @@ angular.module('learnfy')
         }
       })
       .when('/loggedin', {
-        templateUrl: '/views/edit.html'
+        templateUrl: '/views/edit.html',
+        controller: 'EditCtrl'
+      })
+      .when('/terminal', {
+        templateUrl: '/views/terminal.html'
       })
       .otherwise({
         templateUrl: '/views/error.html'

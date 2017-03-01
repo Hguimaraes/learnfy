@@ -25,6 +25,7 @@ module.exports = function(app, express) {
     console.log('Somebody just came to our app!');
   });
 
+  // Login in the Spotify
   app.get('/login', function(req, res) {
     var state = generateRandomString(16);
     res.cookie(config.spotify.statekey, state);
@@ -41,6 +42,7 @@ module.exports = function(app, express) {
       }));
   });
 
+  // Callback after submit a request to Spotify
   app.get('/callback', function(req, res) {
 
     // your application requests refresh and access tokens
@@ -97,6 +99,7 @@ module.exports = function(app, express) {
     }
   });
 
+  // Refresh token if experied
   app.get('/refresh_token', function(req, res) {
 
     // requesting access token from refresh token
@@ -120,6 +123,12 @@ module.exports = function(app, express) {
         });
       }
     });
+  });
+
+  // Receive parameters from config page in the front-end
+  app.post('/create_dataset', function(req, res){
+    console.log("\nRECEIVED PARAMETERS:\n");
+    console.log(req.body);
   });
 
   return apiRouter;
