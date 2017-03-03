@@ -17,7 +17,7 @@ angular.module("learnfy")
     $scope.createDataset = function(){
       // Check if the user has not selected any genre
       // If there is no genre, all the genres will be used
-      if(!$scope.selectedOptions.genres){
+      if(!$scope.selectedOptions.genres || $scope.selectedOptions.genres.length == 0){
         $scope.selectedOptions.genres = $scope.genreList;
       }
 
