@@ -8,8 +8,9 @@ module.exports = {
     'url': {
       'account': 'https://accounts.spotify.com/',
       'refresh_token': 'https://accounts.spotify.com/api/token',
-      'audio_features': 'https://api.spotify.com/v1/audio-features/?ids=',
-      'search_item' : 'https://api.spotify.com/v1/search'
+      'audio_features': 'https://api.spotify.com/v1/audio-features',
+      'search_item' : 'https://api.spotify.com/v1/search?',
+      'search_track' : 'https://api.spotify.com/v1/tracks'
     }
   }
 };

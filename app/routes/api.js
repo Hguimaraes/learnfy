@@ -6,6 +6,9 @@ var config        = require('../../config/config');
 var querystring   = require('querystring');
 var request       = require('request');
 
+// Load model
+var SongList = require('../models/songlist');
+
 // Util function to Generate a random string
 var generateRandomString = function(length) {
   var text = '';
@@ -19,7 +22,10 @@ var generateRandomString = function(length) {
 
 // Exposing routes to server.js through a REST API
 module.exports = function(app, express) {
+  // Usefull variables
   var apiRouter = express.Router();
+  var access_token = null;
+  var refresh_token = null;
 
   apiRouter.use(function(req, res, next) {
     console.log('Somebody just came to our app!');
@@ -76,8 +82,8 @@ module.exports = function(app, express) {
       request.post(authOptions, function(error, response, body) {
         if (!error && response.statusCode === 200) {
 
-          var access_token = body.access_token,
-              refresh_token = body.refresh_token;
+          access_token = body.access_token;
+          refresh_token = body.refresh_token;
 
           var options = {
             url: 'https://api.spotify.com/v1/me',
@@ -90,7 +96,7 @@ module.exports = function(app, express) {
             console.log(body);
           });
 
-          // we can also pass the token to the browser to make requests from there
+          // Return to the logged view
           res.redirect('/#!/loggedin');
         } else {
           res.redirect('/#!/error');
@@ -127,8 +133,16 @@ module.exports = function(app, express) {
 
   // Receive parameters from config page in the front-end
   app.post('/create_dataset', function(req, res){
-    console.log("\nRECEIVED PARAMETERS:\n");
-    console.log(req.body);
+    // Get variables from the post request
+    var configOpts = req.body.configOpt;
+    
+    // Create Song List object to fill
+    var songlist = new SongList(configOpts, access_token)
+
+    // Get the song list info based on genres
+    for (var i = 0; i < configOpts.genres.length; i++) {
+      songlist.getTracks(configOpts.genres[i]);
+    }
   });
 
   return apiRouter;
