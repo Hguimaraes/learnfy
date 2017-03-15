@@ -39,3 +39,4 @@ jspm_packages
 # Bower dependencies
 public/libs
 .env
+dataset
