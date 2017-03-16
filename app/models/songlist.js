@@ -1,20 +1,32 @@
 var config      = require("../../config/config");
 var request     = require('request');
 var querystring = require('querystring');
-var https        = require('https');
+var https       = require('https');
 var fs          = require('fs');
+var ProgressBar = require('progress');
+
 
 var SongList = function(opt, access_token){
   this.opt = opt;
   this.access_token = access_token;
   this.songs_list = []
+  this.downloadCounter = 0;
+
+  // Create the progress bar for this request
+  var green = '\u001b[42m \u001b[0m';
+  var red = '\u001b[41m \u001b[0m';
+  this.bar = new ProgressBar(' Downloading [:bar] :rate/bps :percent :etas', {
+    complete: green,
+    incomplete: red,
+    total: this.opt.maxNumMusic*this.opt.genres.length + 1
+  });
 };
 
 SongList.prototype.getTracks = function(genre, callback){
   var self = this;
   var offset = 0;
   var search_limit = 50;
-
+  
   // Get N tracks in batchs of 50 per request (Limited by Spotify)
   for (var i = 0; i < (self.opt.maxNumMusic/search_limit); i++) {
     // Header parameters for get tracks request
@@ -45,11 +57,11 @@ SongList.prototype.getTracks = function(genre, callback){
         tracks.map(function(value, index){
           // Save the tracks Id
           track_id.push(value.id);
-
+          
           // If the Download Preview is selected
           if(self.opt.audioprev){
             var file_path = "./dataset/" + genre + "/" + value.id + ".mp3"
-            downloadPreviewTrack(file_path, value.preview_url);
+            self.downloadPreviewTrack(file_path, value.preview_url);
           }
         });
 
@@ -73,18 +85,27 @@ SongList.prototype.getTracks = function(genre, callback){
 
 
 // Thanks to the awesome answer of Vince Yuan on Stackoverflow
-var downloadPreviewTrack = function(file_path, preview_url, callback){
+SongList.prototype.downloadPreviewTrack = function(file_path, preview_url, callback){
+  var self = this;
+  
   // Create the file and download from the given URL
   var file = fs.createWriteStream(file_path);
   var request = https.get(preview_url, function(response) {
     response.pipe(file);
     
     file.on('finish', function() {
+      // When finish downloading one file, progress the bar
+      self.bar.tick();
+      // If completed, tell to the user
+      if (self.bar.complete) {
+        console.log('\nDownload Completed\n');
+      }
+      // Close file
       file.close(callback);
     });
 
   }).on('error', function(err) { // Handle errors
-    fs.unlink(dest); // Delete the file async.
+    fs.unlink(file_path); // Delete the file async.
     if (callback) callback(err.message);
   });
 };

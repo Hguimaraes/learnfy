@@ -30,6 +30,7 @@
     "json2csv": "^3.7.3",
     "morgan": "^1.8.1",
     "path": "^0.12.7",
+    "progress": "^1.1.8",
     "querystring": "^0.2.0",
     "request": "^2.79.0"
   }
