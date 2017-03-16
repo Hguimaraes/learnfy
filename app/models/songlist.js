@@ -18,7 +18,7 @@ var SongList = function(opt, access_token){
   this.bar = new ProgressBar(' Downloading [:bar] :rate/bps :percent :etas', {
     complete: green,
     incomplete: red,
-    total: this.opt.maxNumMusic*this.opt.genres.length + 1
+    total: this.opt.maxNumMusic*this.opt.genres.length
   });
 };
 
@@ -60,7 +60,7 @@ SongList.prototype.getTracks = function(genre, callback){
           
           // If the Download Preview is selected
           if(self.opt.audioprev){
-            var file_path = "./dataset/" + genre + "/" + value.id + ".mp3"
+            var file_path = "./dataset/" + genre + "/" + value.id + ".mp3";
             self.downloadPreviewTrack(file_path, value.preview_url);
           }
         });
@@ -83,7 +83,7 @@ SongList.prototype.getTracks = function(genre, callback){
   }
 };
 
-
+// Function to downlaod the Preview file from Spotify
 // Thanks to the awesome answer of Vince Yuan on Stackoverflow
 SongList.prototype.downloadPreviewTrack = function(file_path, preview_url, callback){
   var self = this;
@@ -108,6 +108,11 @@ SongList.prototype.downloadPreviewTrack = function(file_path, preview_url, callb
     fs.unlink(file_path); // Delete the file async.
     if (callback) callback(err.message);
   });
+};
+
+// Function to request to the API the audio-features a tracks from Spotify
+SongList.prototype.downloadAudioFeatures = function(){
+
 };
 
 module.exports = SongList; 
