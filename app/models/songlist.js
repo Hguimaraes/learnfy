@@ -3,7 +3,7 @@ var request     = require('request');
 var querystring = require('querystring');
 var https       = require('https');
 var fs          = require('fs');
-var ProgressBar = require('progress');
+var ProgressBar = require('ascii-progress');
 var json2csv    = require('json2csv');
 
 
@@ -14,16 +14,6 @@ var SongList = function(opt, access_token){
 
   // How many songs will be included in the audio features or preview donwload
   this.total_songs = this.opt.maxNumMusic*this.opt.genres.length;
-
-  // Variables for audio-preview download
-  // Create the progress bar if downloading previews for this request
-  var green = '\u001b[42m \u001b[0m';
-  var red = '\u001b[41m \u001b[0m';
-  this.bar = new ProgressBar(' Downloading [:bar] :rate/bps :percent :etas', {
-    complete: green,
-    incomplete: red,
-    total: this.total_songs
-  });
 
   // Variables for audio-features download
   // Dataset will be written in a CSV file if 
@@ -37,6 +27,21 @@ var SongList = function(opt, access_token){
     "mode", "speechiness", "acousticness", "instrumentalness", "liveness",
     "valence", "tempo", "time_signature"];
   this.dataset_filename = config.constants.dataset_filename;
+
+  // Progress bar for audio-features and audio-preview
+  var tokens = ':current.underline.magenta/:total.italic.green :percent.bold.yellow :elapseds.italic.blue :etas.italic.cyan';
+    
+  // Audio features progress bar
+  this.barAudioFeatures = new ProgressBar({ 
+    schema: ' [.white:filled.blue:blank.grey] .white' + tokens,
+    total : this.total_songs 
+  });
+
+  // Audio preview progress bar
+  this.barAudioPreview = new ProgressBar({ 
+    schema: ' [.white:filled.green:blank.grey] .white' + tokens,
+    total : this.total_songs 
+  });
 };
 
 //  Main function to get our dataset (features or preview)
@@ -118,10 +123,10 @@ SongList.prototype.downloadPreviewTrack = function(file_path, preview_url, callb
     
     file.on('finish', function() {
       // When finish downloading one file, progress the bar
-      self.bar.tick();
+      self.barAudioPreview.tick();
       // If completed, tell to the user
-      if (self.bar.complete) {
-        console.log('\nDownload Completed\n');
+      if (self.barAudioPreview.completed) {
+        console.log('audio-preview download completed\n');
       }
       // Close file
       file.close(callback);
@@ -163,6 +168,12 @@ SongList.prototype.downloadAudioFeatures = function(id_list, genre, callback){
   // Request audio features for this track
   request.get(options_track_features, function(err, resp, data) {
     if(!err && resp.statusCode == 200){
+      // Update bar
+      self.barAudioFeatures.tick(50);
+      if (self.barAudioFeatures.completed) {
+        console.log('audio-features download completed!\n');
+      }
+
       // Map each entry to the data structure
       data.audio_features.map(function(value, index){
         self.dataset.push(value);
