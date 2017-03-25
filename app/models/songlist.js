@@ -6,7 +6,6 @@ var fs          = require('fs');
 var ProgressBar = require('ascii-progress');
 var json2csv    = require('json2csv');
 var jsonfile    = require('jsonfile');
-var queue       = require('queue');
 
 var SongList = function(opt, access_token){
   // Save received parameters
@@ -17,7 +16,7 @@ var SongList = function(opt, access_token){
   this.total_songs = this.opt.maxNumMusic*this.opt.genres.length;
 
   // Auxiliar variables for getTracks
-  this.tracksSet = new queue();
+  this.tracksSet = {"opts" : this.opt , "tracks" : []};
   this.getTracksCounter = 0;
 
   // Variables for audio-features download
@@ -51,6 +50,9 @@ var SongList = function(opt, access_token){
 //  Main function to get our dataset (features or preview)
 // Called by the API (route: /create_dataset)
 SongList.prototype.getTracks = function(){
+  // Log what is going on
+  console.log(".:. Starting getTracks, please wait...");
+
   // Auxiliar variables
   var self = this;
   var offset = 0;
@@ -87,7 +89,7 @@ SongList.prototype.getTracks = function(){
           // Parse the result of the request
           tracks.map(function(value, index){
             // Save the tracks Id
-            self.tracksSet.push({
+            self.tracksSet.tracks.push({
               'id': value.id,
               'preview_url': value.preview_url,
               'genre': genre
@@ -100,10 +102,11 @@ SongList.prototype.getTracks = function(){
           // If download list is completed, call the appropriate functions
           console.log(self.getTracksCounter);
           if(self.getTracksCounter == self.total_songs){
+
             // If backup option is selected, save the tracksSet
             if(self.opt.bkp){
               jsonfile.writeFile(config.constants.bkp, self.tracksSet, function (err) {
-                console.error(err)
+                if(err) console.error(err);
               });
             }
 
@@ -116,7 +119,7 @@ SongList.prototype.getTracks = function(){
             //  If the audio preview option is selected, download and
             // save the files in mp3
             if(self.opt.audioprev){
-              console.log("Audiomet selected");
+              self.downloadPreviewTrack(0);
             }
           }
         } else {
@@ -132,12 +135,18 @@ SongList.prototype.getTracks = function(){
 
 // Function to downlaod the Preview file from Spotify
 // Thanks to the awesome answer of Vince Yuan on Stackoverflow
-SongList.prototype.downloadPreviewTrack = function(file_path, preview_url, callback){
+SongList.prototype.downloadPreviewTrack = function(id, callback){
+  // Auxiliar variables
   var self = this;
-  
+  var track = self.tracksSet.tracks[id]
+
+  // Create the file path
+  var file_path = config.constants.audio_preview_folder + 
+    track.genre + "/" + track.id + ".mp3";
+
   // Create the file and download from the given URL
   var file = fs.createWriteStream(file_path);
-  var request = https.get(preview_url, function(response) {
+  var request = https.get(track.preview_url, function(response) {
     response.pipe(file);
     
     file.on('finish', function() {
@@ -146,7 +155,10 @@ SongList.prototype.downloadPreviewTrack = function(file_path, preview_url, callb
       // If completed, tell to the user
       if (self.barAudioPreview.completed) {
         console.log('audio-preview download completed\n');
+      } else {
+        self.downloadPreviewTrack(id + 1);
       }
+
       // Close file
       file.close(callback);
     });
