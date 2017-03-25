@@ -81,52 +81,56 @@ SongList.prototype.getTracks = function(){
       };
 
       // Make the request for tracks list
-      request.get(options_searchtrack, function(error, response, body){
-        // In case of success in the request save the tracks
-        if(!error && response.statusCode == 200){
-          // Received requests
-          var tracks = body.tracks.items;
+      function runRequest(url, callback){
+        request.get(url, function(error, response, body){
+          // In case of success in the request save the tracks
+          if(!error && response.statusCode == 200){
+            // Received requests
+            var tracks = body.tracks.items;
 
-          // Parse the result of the request
-          tracks.map(function(value, index){
-            // Save the tracks Id
-            self.tracksSet.tracks.push({
-              'id': value.id,
-              'preview_url': value.preview_url,
-              'genre': genre
-            });
-          });
-
-          // Increment download counter
-          self.getTracksCounter += search_limit;
-          
-          // If download list is completed, call the appropriate functions
-          console.log(self.getTracksCounter);
-          if(self.getTracksCounter == self.total_songs){
-
-            // If backup option is selected, save the tracksSet
-            if(self.opt.bkp){
-              jsonfile.writeFile(self.bkp_filepath, self.tracksSet, function (err) {
-                if(err) console.error(err);
+            // Parse the result of the request
+            tracks.map(function(value, index){
+              // Save the tracks Id
+              self.tracksSet.tracks.push({
+                'id': value.id,
+                'preview_url': value.preview_url,
+                'genre': genre
               });
-            }
+            });
 
-            //  If the audio features option is selected, download and
-            // save to a CSV file
-            if(self.opt.audiomet){
-              self.downloadAudioFeatures();
-            }
+            // Increment download counter
+            self.getTracksCounter += search_limit;
+            
+            // If download list is completed, call the appropriate functions
+            console.log(self.getTracksCounter);
+            if(self.getTracksCounter == self.total_songs){
 
-            //  If the audio preview option is selected, download and
-            // save the files in mp3
-            if(self.opt.audioprev){
-              self.downloadPreviewTrack(0);
+              // If backup option is selected, save the tracksSet
+              if(self.opt.bkp){
+                jsonfile.writeFile(self.bkp_filepath, self.tracksSet, function (err) {
+                  if(err) console.error(err);
+                });
+              }
+
+              //  If the audio features option is selected, download and
+              // save to a CSV file
+              if(self.opt.audiomet){
+                self.downloadAudioFeatures();
+              }
+
+              //  If the audio preview option is selected, download and
+              // save the files in mp3
+              if(self.opt.audioprev){
+                self.downloadPreviewTrack(0);
+              }
             }
+          } else {
+            // Retry in 5 seconds
+            setTimeout(runRequest(url), 5000);
           }
-        } else {
-          console.log("ERROR IN GET TRACKS : " + response.statusCode);
-        }
-      });
+        });
+      }
+      runRequest(options_searchtrack);
 
       // Increment offset for the next batch
       offset = offset + search_limit;
@@ -210,28 +214,33 @@ SongList.prototype.downloadAudioFeatures = function(callback){
     };
 
     // Request audio features for this track
-    request.get(options_track_features, function(err, resp, data) {
-      if(!err && resp.statusCode == 200){
-        // Update bar
-        self.barAudioFeatures.tick(batchSize);
-        if (self.barAudioFeatures.completed) {
-          console.log('audio-features download completed!\n');
+    function runRequest(url, callback){
+      request.get(options_track_features, function(err, resp, data) {
+        if(!err && resp.statusCode == 200){
+          // Update bar
+          self.barAudioFeatures.tick(batchSize);
+          if (self.barAudioFeatures.completed) {
+            console.log('audio-features download completed!\n');
+          }
+
+          // Map each entry to the data structure
+          data.audio_features.map(function(value, index){
+            self.dataset.push(value);
+          });
+
+          // Write to the CSV file
+          var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
+          fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
+            if (err) throw err;
+          });
+        } else {
+          // Retry in 5 seconds
+          setTimeout(runRequest(url), 5000);
         }
+      });
+    }
 
-        // Map each entry to the data structure
-        data.audio_features.map(function(value, index){
-          self.dataset.push(value);
-        });
-
-        // Write to the CSV file
-        var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
-        fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
-          if (err) throw err;
-        });
-      } else {
-        console.log("ERROR IN AUDIO FEATURE : " + statusCode);
-      }
-    });
+    runRequest(options_track_features);
   }
 };
 
