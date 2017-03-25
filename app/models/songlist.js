@@ -5,7 +5,7 @@ var https       = require('https');
 var fs          = require('fs');
 var ProgressBar = require('ascii-progress');
 var json2csv    = require('json2csv');
-
+var jsonfile    = require('jsonfile');
 
 var SongList = function(opt, access_token){
   // Save received parameters
@@ -15,9 +15,12 @@ var SongList = function(opt, access_token){
   // How many songs will be included in the audio features or preview donwload
   this.total_songs = this.opt.maxNumMusic*this.opt.genres.length;
 
+  // Auxiliar variables for getTracks
+  this.tracksSet = [];
+  this.getTracksCounter = 0;
+
   // Variables for audio-features download
-  // Dataset will be written in a CSV file if 
-  this.downloadCounter = 0;
+  // Dataset will be written in a CSV file if selected 
   this.truth_table = [];
   this.truth_table_headers = ["id", "genre"]
   this.truth_table_filename = config.constants.truth_table_filename;
@@ -46,69 +49,84 @@ var SongList = function(opt, access_token){
 
 //  Main function to get our dataset (features or preview)
 // Called by the API (route: /create_dataset)
-SongList.prototype.getTracks = function(genre, callback){
+SongList.prototype.getTracks = function(){
+  // Auxiliar variables
   var self = this;
   var offset = 0;
   var search_limit = 50;
   
-  // Get N tracks in batchs of 50 per request (Limited by Spotify)
-  for (var i = 0; i < (self.opt.maxNumMusic/search_limit); i++) {
-    // Header parameters for get tracks request
-    var options_searchtrack = {
-      url: config.spotify.url.search_item + querystring.stringify({
-        q: 'genre:' + genre,
-        type: 'track',
-        limit: search_limit,
-        offset: offset
-      }),
-      headers: { 
-        'Authorization': 'Bearer ' + self.access_token
-      },
-      json: true
-    };
+  // For each genre, get the tracks in the search API
+  self.opt.genres.forEach(function(genre){
+    // Reset offset for each genre
+    offset = 0;
 
-    // Make the request for tracks list
-    request.get(options_searchtrack, function(error, response, body){
-      // In case of success in the request save the tracks
-      if(!error && response.statusCode == 200){
-        // Received requests
-        var tracks = body.tracks.items;
+    // Get N tracks in batchs of 50 per request (Limited by Spotify)
+    for (var i = 0; i < (self.opt.maxNumMusic/search_limit); i++) {
+      // Header parameters for get tracks request
+      var options_searchtrack = {
+        url: config.spotify.url.search_item + querystring.stringify({
+          q: 'genre:' + genre,
+          type: 'track',
+          limit: search_limit,
+          offset: offset
+        }),
+        headers: { 
+          'Authorization': 'Bearer ' + self.access_token
+        },
+        json: true
+      };
 
-        // ID List
-        var track_id = [];
-        var truth_table = [];
-        
-        // Parse the result of the request
-        tracks.map(function(value, index){
-          // Save the tracks Id
-          track_id.push(value.id);
-          truth_table.push({'id': value.id, 'genre': genre});
+      // Make the request for tracks list
+      request.get(options_searchtrack, function(error, response, body){
+        // In case of success in the request save the tracks
+        if(!error && response.statusCode == 200){
+          // Received requests
+          var tracks = body.tracks.items;
 
-          // If the Download Preview is selected
-          if(self.opt.audioprev){
-            var file_path = config.constants.audio_preview_folder + 
-              genre + "/" + value.id + ".mp3";
-            self.downloadPreviewTrack(file_path, value.preview_url);
+          // Parse the result of the request
+          tracks.map(function(value, index){
+            // Save the tracks Id
+            self.tracksSet.push({
+              'id': value.id,
+              'preview_url': value.preview_url,
+              'genre': genre
+            });
+          });
+
+          // Increment download counter
+          self.getTracksCounter += search_limit;
+          
+          // If download list is completed, call the appropriate functions
+          console.log(self.getTracksCounter);
+          if(self.getTracksCounter == self.total_songs){
+            // If backup option is selected, save the tracksSet
+            if(self.opt.bkp){
+              jsonfile.writeFile(config.constants.bkp, self.tracksSet, function (err) {
+                console.error(err)
+              });
+            }
+
+            //  If the audio features option is selected, download and
+            // save to a CSV file
+            if(self.opt.audiomet){
+              console.log("Audiomet selected");
+            }
+
+            //  If the audio preview option is selected, download and
+            // save the files in mp3
+            if(self.opt.audioprev){
+              console.log("Audiomet selected");
+            }
           }
-        });
-
-        // If the Audio metadata is selected
-        // Request audio-features for a set of ids
-        if(self.opt.audiomet){
-          self.downloadAudioFeatures(track_id, genre);
+        } else {
+          console.log("ERROR IN GET TRACKS : " + response.statusCode);
         }
+      });
 
-        //@TODO: If backup is selected, save the ids, urls and genre to a file
-        // to be restored in the future.
-        if(self.opt.bkp){
-          console.log(self.opt);
-        }
-      }
-    });
-
-    // Increment offset for the next batch
-    offset = offset + search_limit;
-  }
+      // Increment offset for the next batch
+      offset = offset + search_limit;
+    }
+  });
 };
 
 // Function to downlaod the Preview file from Spotify

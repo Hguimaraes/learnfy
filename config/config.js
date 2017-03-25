@@ -16,6 +16,7 @@ module.exports = {
   'constants':{
     'audio_preview_folder' : './dataset/songs/',
     'truth_table_filename' : "./dataset/spotify_truth_table.csv",
-    'dataset_filename' : './dataset/spotify_dataset.csv'
+    'dataset_filename' : './dataset/spotify_dataset.csv',
+    'bkp' : './dataset/spotify_dataset.bkp'
   }
 };

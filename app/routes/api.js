@@ -140,9 +140,7 @@ module.exports = function(app, express) {
     var songlist = new SongList(configOpts, access_token)
 
     // Get the song list info based on genres
-    for (var i = 0; i < configOpts.genres.length; i++) {
-      songlist.getTracks(configOpts.genres[i]);
-    }
+    songlist.getTracks();
   });
 
   return apiRouter;
