@@ -18,6 +18,7 @@ var SongList = function(opt, access_token){
   // Auxiliar variables for getTracks
   this.tracksSet = {"opts" : this.opt , "tracks" : []};
   this.getTracksCounter = 0;
+  this.bkp_filepath = config.constants.bkp;
 
   // Variables for audio-features download
   // Dataset will be written in a CSV file if selected 
@@ -105,7 +106,7 @@ SongList.prototype.getTracks = function(){
 
             // If backup option is selected, save the tracksSet
             if(self.opt.bkp){
-              jsonfile.writeFile(config.constants.bkp, self.tracksSet, function (err) {
+              jsonfile.writeFile(self.bkp_filepath, self.tracksSet, function (err) {
                 if(err) console.error(err);
               });
             }
@@ -113,7 +114,7 @@ SongList.prototype.getTracks = function(){
             //  If the audio features option is selected, download and
             // save to a CSV file
             if(self.opt.audiomet){
-              console.log("Audiomet selected");
+              self.downloadAudioFeatures();
             }
 
             //  If the audio preview option is selected, download and
@@ -170,24 +171,17 @@ SongList.prototype.downloadPreviewTrack = function(id, callback){
 };
 
 // Function to request to the API the audio-features a tracks from Spotify
-SongList.prototype.downloadAudioFeatures = function(id_list, genre, callback){
-  // Request parameters
+SongList.prototype.downloadAudioFeatures = function(callback){
+  // Auxiliar variables
   var self = this;
-  var options_track_features = {
-    url: config.spotify.url.audio_features + querystring.stringify({
-        ids: id_list.toString()
-      }),
-      headers: { 
-        'Authorization': 'Bearer ' + self.access_token
-      },
-      json: true
-    };
-  
-  // Set up the truth table and save to a CSV
-  id_list.map(function(value, index){
+  var batchSize = 100;
+  var ids = [];
+
+  // Save the truth_table
+  self.tracksSet.tracks.map(function(value, index){
     self.truth_table.push({
-      "id" : value,
-      "genre": genre
+      "id" : value.id,
+      "genre": value.genre
     });
   });
 
@@ -196,29 +190,49 @@ SongList.prototype.downloadAudioFeatures = function(id_list, genre, callback){
     if (err) console.log(err);
   });
 
-  // Request audio features for this track
-  request.get(options_track_features, function(err, resp, data) {
-    if(!err && resp.statusCode == 200){
-      // Update bar
-      self.barAudioFeatures.tick(50);
-      if (self.barAudioFeatures.completed) {
-        console.log('audio-features download completed!\n');
+  // Get audio-features in batchs (API limit - max of 100 tracks per request)
+  for(var i = 0; i < self.total_songs; i += batchSize){
+    // Get a batch of ids
+    ids = [];
+    self.tracksSet.tracks.slice(i, i + batchSize).map(function(value, index){
+      ids.push(value.id);
+    });
+
+    // Request parameters
+    var options_track_features = {
+      url: config.spotify.url.audio_features + querystring.stringify({
+          ids: ids.toString()
+        }),
+        headers: { 
+          'Authorization': 'Bearer ' + self.access_token
+        },
+        json: true
+    };
+
+    // Request audio features for this track
+    request.get(options_track_features, function(err, resp, data) {
+      if(!err && resp.statusCode == 200){
+        // Update bar
+        self.barAudioFeatures.tick(batchSize);
+        if (self.barAudioFeatures.completed) {
+          console.log('audio-features download completed!\n');
+        }
+
+        // Map each entry to the data structure
+        data.audio_features.map(function(value, index){
+          self.dataset.push(value);
+        });
+
+        // Write to the CSV file
+        var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
+        fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
+          if (err) throw err;
+        });
+      } else {
+        console.log("ERROR IN AUDIO FEATURE : " + statusCode);
       }
-
-      // Map each entry to the data structure
-      data.audio_features.map(function(value, index){
-        self.dataset.push(value);
-      });
-
-      // Write to the CSV file
-      var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
-      fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
-        if (err) throw err;
-      });
-    } else {
-      console.log("ERROR IN AUDIO FEATURE : " + err);
-    }
-  });
+    });
+  }
 };
 
 module.exports = SongList; 
