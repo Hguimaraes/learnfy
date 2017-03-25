@@ -6,6 +6,7 @@ var fs          = require('fs');
 var ProgressBar = require('ascii-progress');
 var json2csv    = require('json2csv');
 var jsonfile    = require('jsonfile');
+var queue       = require('queue');
 
 var SongList = function(opt, access_token){
   // Save received parameters
@@ -16,7 +17,7 @@ var SongList = function(opt, access_token){
   this.total_songs = this.opt.maxNumMusic*this.opt.genres.length;
 
   // Auxiliar variables for getTracks
-  this.tracksSet = [];
+  this.tracksSet = new queue();
   this.getTracksCounter = 0;
 
   // Variables for audio-features download
