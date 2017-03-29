@@ -12,6 +12,9 @@ var SongList = function(opt, access_token){
   this.opt = opt;
   this.access_token = access_token;
 
+  // Retry time
+  this.retry_ms = 10000;
+
   // How many songs will be included in the audio features or preview donwload
   this.total_songs = this.opt.maxNumMusic*this.opt.genres.length;
 
@@ -130,8 +133,8 @@ SongList.prototype.getTracks = function(){
               }
             }
           } else {
-            // Retry in 5 seconds
-            setTimeout(runRequest(url), 5000);
+            // Retry in retry_ms seconds
+            setTimeout(runRequest(url), self.retry_ms);
           }
         });
       }
@@ -240,7 +243,7 @@ SongList.prototype.downloadAudioFeatures = function(callback){
           });
         } else {
           // Retry in 5 seconds
-          setTimeout(runRequest(url), 5000);
+          setTimeout(runRequest(url), self.retry_ms);
         }
       });
     }
