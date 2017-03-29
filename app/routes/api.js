@@ -26,6 +26,7 @@ module.exports = function(app, express) {
   var apiRouter = express.Router();
   var access_token = null;
   var refresh_token = null;
+  var first_request = true;
 
   apiRouter.use(function(req, res, next) {
     console.log('Somebody just came to our app!');
@@ -133,14 +134,19 @@ module.exports = function(app, express) {
 
   // Receive parameters from config page in the front-end
   app.post('/create_dataset', function(req, res){
-    // Get variables from the post request
-    var configOpts = req.body.configOpt;
-    
-    // Create Song List object to fill
-    var songlist = new SongList(configOpts, access_token)
+    if(first_request){
+      // Disable first request
+      first_request = false;
+      
+      // Get variables from the post request
+      var configOpts = req.body.configOpt;
+      
+      // Create Song List object to fill
+      var songlist = new SongList(configOpts, access_token)
 
-    // Get the song list info based on genres
-    songlist.getTracks();
+      // Get the song list info based on genres
+      songlist.getTracks();
+    }
   });
 
   return apiRouter;
