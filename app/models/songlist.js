@@ -133,8 +133,13 @@ SongList.prototype.getTracks = function(){
               }
             }
           } else {
-            // Retry in retry_ms seconds
-            setTimeout(runRequest(url), self.retry_ms);
+            // Retry in retry-after or retry_ms seconds
+            if(!error && response.statusCode == 429){
+              setTimeout(runRequest(url), response['retry-after']);
+            } else {
+              console.log(error);
+              setTimeout(runRequest(url), self.retry_ms);
+            }
           }
         });
       }
@@ -239,11 +244,16 @@ SongList.prototype.downloadAudioFeatures = function(callback){
           // Write to the CSV file
           var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
           fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
-            if (err) throw err;
+            if (err) console.log(err);
           });
         } else {
-          // Retry in 5 seconds
-          setTimeout(runRequest(url), self.retry_ms);
+          // Retry in retry-after or retry_ms seconds
+          if(!err && resp.statusCode == 429){
+            setTimeout(runRequest(url), resp['retry-after']);
+          } else {
+            console.log(err);
+            setTimeout(runRequest(url), self.retry_ms);
+          }
         }
       });
     }
