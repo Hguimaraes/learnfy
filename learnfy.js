@@ -38,7 +38,7 @@ app.use(function(req, res, next) {
 });
 
 // log all requests to the console 
-app.use(morgan('dev'));
+//app.use(morgan('dev'));
 
 // Setting port and static path to express
 app.use(express.static(path.join(__dirname, public_folder)));
