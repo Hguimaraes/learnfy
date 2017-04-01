@@ -20,7 +20,6 @@ var SongList = function(opt, access_token){
 
   // Auxiliar variables for getTracks
   this.tracksSet = {"opts" : this.opt , "tracks" : []};
-  this.getTracksCounter = 0;
   this.bkp_filepath = config.constants.bkp;
 
   // Variables for audio-features download
@@ -35,16 +34,15 @@ var SongList = function(opt, access_token){
     "valence", "tempo", "time_signature"];
   this.dataset_filename = config.constants.dataset_filename;
 
-  // Progress bar for audio-features and audio-preview
-  this.tokens = ':current.underline.magenta/:total.italic.green :percent.bold.yellow :elapseds.italic.blue :etas.italic.cyan';
-    
-  // Audio features progress bar
-  this.barAudioFeatures = undefined
-
-  // Audio preview progress bar
-  this.barAudioPreview = new ProgressBar({ 
-    schema: ' [.white:filled.green:blank.grey] .white' + this.tokens,
-    total : this.total_songs 
+  // Progress bar for getTracks, audio-features and audio-preview
+  this.tokens = ':current.underline.magenta/:total.italic.green ' +
+    ':percent.bold.yellow :elapseds.italic.blue :etas.italic.cyan';
+  this.barAudioPreview = undefined;
+  this.barAudioFeatures = undefined;
+  
+  this.barGetTracks = new ProgressBar({ 
+    schema: 'get_tracks: [.white:filled.magenta:blank.grey] .white' + this.tokens,
+    total : this.total_songs
   });
 };
 
@@ -103,12 +101,12 @@ SongList.prototype.getTracks = function(){
               }
             });
 
-            // Increment download counter
-            self.getTracksCounter += search_limit;
-            
+            // Tick the download bar
+            self.barGetTracks.tick(search_limit);
+
             // If download list is completed, call the appropriate functions
-            console.log(self.getTracksCounter);
-            if(self.getTracksCounter == self.total_songs){
+            if(self.barGetTracks.completed){
+              console.log(".:. Fetched all the tracks ids. Starting downloads!\n");
 
               // If backup option is selected, save the tracksSet
               if(self.opt.bkp){
@@ -120,12 +118,25 @@ SongList.prototype.getTracks = function(){
               //  If the audio features option is selected, download and
               // save to a CSV file
               if(self.opt.audiomet){
+                // Set the download bar
+                self.barAudioFeatures = new ProgressBar({ 
+                  schema: 'audio_features: [.white:filled.blue:blank.grey] .white' + self.tokens,
+                  total : self.tracksSet.tracks.length
+                });
+
                 self.downloadAudioFeatures();
               }
 
               //  If the audio preview option is selected, download and
               // save the files in mp3
               if(self.opt.audioprev){
+                // Set the download bar
+                self.barAudioPreview = new ProgressBar({ 
+                  schema: 'preview_audio:  [.white:filled.green:blank.grey] .white' + self.tokens,
+                  total : self.tracksSet.tracks .length
+                });
+
+                // Start the download
                 self.downloadPreviewTrack(0);
               }
             }
@@ -134,7 +145,7 @@ SongList.prototype.getTracks = function(){
             if(!error && response.statusCode == 429){
               setTimeout(runRequest(url), response['retry-after']);
             } else {
-              console.log(error);
+              console.log("Warning: Error has ocurred: " + error + " .:. Retrying in seconds");
               setTimeout(runRequest(url), self.retry_ms);
             }
           }
@@ -150,10 +161,10 @@ SongList.prototype.getTracks = function(){
 
 // Function to downlaod the Preview file from Spotify
 // Thanks to the awesome answer of Vince Yuan on Stackoverflow
-SongList.prototype.downloadPreviewTrack = function(id, callback){
+SongList.prototype.downloadPreviewTrack = function(index, callback){
   // Auxiliar variables
   var self = this;
-  var track = self.tracksSet.tracks[id]
+  var track = self.tracksSet.tracks[index]
 
   // Create the file path
   var file_path = config.constants.audio_preview_folder + 
@@ -168,19 +179,16 @@ SongList.prototype.downloadPreviewTrack = function(id, callback){
       // When finish downloading one file, progress the bar
       self.barAudioPreview.tick();
       // If completed, tell to the user
-      if (self.barAudioPreview.completed) {
-        console.log('audio-preview download completed\n');
-      } else {
-        self.downloadPreviewTrack(id + 1);
+      if (!self.barAudioPreview.completed) {
+        self.downloadPreviewTrack(index + 1);
       }
 
       // Close file
       file.close(callback);
     });
-
   }).on('error', function(err) { // Handle errors
     fs.unlink(file_path); // Delete the file async.
-    if (callback) callback(err.message);
+    console.log(err);
   });
 };
 
@@ -202,13 +210,7 @@ SongList.prototype.downloadAudioFeatures = function(callback){
   fs.writeFile(self.truth_table_filename, truth_table_csv, function(err) {
     if (err) console.log(err);
   });
-
-  // Define the download bar
-  self.barAudioFeatures = new ProgressBar({ 
-    schema: ' [.white:filled.blue:blank.grey] .white' + self.tokens,
-    total : self.tracksSet.tracks.length
-  });
-
+  
   // Get audio-features in batchs (API limit - max of 100 tracks per request)
   for(var i = 0; i < self.total_songs; i += batchSize){
     // Get a batch of ids
@@ -241,8 +243,6 @@ SongList.prototype.downloadAudioFeatures = function(callback){
           
           // Check if is the last request to be completed
           if (self.barAudioFeatures.completed) {
-            console.log('audio-features download completed!\n');
-
             // Write to the CSV file
             var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
             fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
