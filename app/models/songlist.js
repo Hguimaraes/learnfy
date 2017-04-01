@@ -36,17 +36,14 @@ var SongList = function(opt, access_token){
   this.dataset_filename = config.constants.dataset_filename;
 
   // Progress bar for audio-features and audio-preview
-  var tokens = ':current.underline.magenta/:total.italic.green :percent.bold.yellow :elapseds.italic.blue :etas.italic.cyan';
+  this.tokens = ':current.underline.magenta/:total.italic.green :percent.bold.yellow :elapseds.italic.blue :etas.italic.cyan';
     
   // Audio features progress bar
-  this.barAudioFeatures = new ProgressBar({ 
-    schema: ' [.white:filled.blue:blank.grey] .white' + tokens,
-    total : this.total_songs 
-  });
+  this.barAudioFeatures = undefined
 
   // Audio preview progress bar
   this.barAudioPreview = new ProgressBar({ 
-    schema: ' [.white:filled.green:blank.grey] .white' + tokens,
+    schema: ' [.white:filled.green:blank.grey] .white' + this.tokens,
     total : this.total_songs 
   });
 };
@@ -192,8 +189,7 @@ SongList.prototype.downloadAudioFeatures = function(callback){
   // Auxiliar variables
   var self = this;
   var batchSize = 100;
-  var ids = [];
-
+  
   // Save the truth_table
   self.tracksSet.tracks.map(function(value, index){
     self.truth_table.push({
@@ -207,12 +203,17 @@ SongList.prototype.downloadAudioFeatures = function(callback){
     if (err) console.log(err);
   });
 
+  // Define the download bar
+  self.barAudioFeatures = new ProgressBar({ 
+    schema: ' [.white:filled.blue:blank.grey] .white' + self.tokens,
+    total : self.tracksSet.tracks.length
+  });
+
   // Get audio-features in batchs (API limit - max of 100 tracks per request)
   for(var i = 0; i < self.total_songs; i += batchSize){
     // Get a batch of ids
-    ids = [];
-    self.tracksSet.tracks.slice(i, i + batchSize).map(function(value, index){
-      ids.push(value.id);
+    var ids = self.tracksSet.tracks.slice(i, i + batchSize).map(function(value, index){
+      return value.id;
     });
 
     // Request parameters
@@ -225,33 +226,34 @@ SongList.prototype.downloadAudioFeatures = function(callback){
         },
         json: true
     };
-
+    
     // Request audio features for this track
     function runRequest(url, callback){
-      request.get(options_track_features, function(err, resp, data) {
+      request.get(url, function(err, resp, data) {
         if(!err && resp.statusCode == 200){
-          // Update bar
-          self.barAudioFeatures.tick(batchSize);
-          if (self.barAudioFeatures.completed) {
-            console.log('audio-features download completed!\n');
-          }
-
           // Map each entry to the data structure
           data.audio_features.map(function(value, index){
             self.dataset.push(value);
           });
 
-          // Write to the CSV file
-          var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
-          fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
-            if (err) console.log(err);
-          });
+          // Update bar
+          self.barAudioFeatures.tick(data.audio_features.length);
+          
+          // Check if is the last request to be completed
+          if (self.barAudioFeatures.completed) {
+            console.log('audio-features download completed!\n');
+
+            // Write to the CSV file
+            var dataset_csv = json2csv({ data: self.dataset, fields: self.dataset_headers });
+            fs.writeFile(self.dataset_filename, dataset_csv, function(err) {
+              if (err) console.log(err);
+            });
+          }
         } else {
           // Retry in retry-after or retry_ms seconds
           if(!err && resp.statusCode == 429){
             setTimeout(runRequest(url), resp['retry-after']);
           } else {
-            console.log(err);
             setTimeout(runRequest(url), self.retry_ms);
           }
         }
