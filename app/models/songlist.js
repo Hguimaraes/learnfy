@@ -186,9 +186,13 @@ SongList.prototype.downloadPreviewTrack = function(index, callback){
       // Close file
       file.close(callback);
     });
-  }).on('error', function(err) { // Handle errors
-    fs.unlink(file_path); // Delete the file async.
+  }).on('error', function(err) {
+    // Delete the file async.
+    fs.unlink(file_path);
+    // Print error
     console.log(err);
+    // Retry after retry_seconds
+    setTimeout(self.downloadPreviewTrack(index), self.retry_ms);
   });
 };
 
