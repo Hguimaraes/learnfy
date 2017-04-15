@@ -5,6 +5,7 @@
 var config        = require('../../config/config');
 var querystring   = require('querystring');
 var request       = require('request');
+var dirutil       = require('../utils/dirutil');
 
 // Load model
 var SongList = require('../models/songlist');
@@ -137,10 +138,13 @@ module.exports = function(app, express) {
     if(first_request){
       // Disable first request
       first_request = false;
-      
+            
       // Get variables from the post request
       var configOpts = req.body.configOpt;
       
+      // Directory creation
+      dirutil.configureDatasetFolder(configOpts);
+
       // Create Song List object to fill
       var songlist = new SongList(configOpts, access_token)
 
