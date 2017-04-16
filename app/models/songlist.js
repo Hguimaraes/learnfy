@@ -143,7 +143,7 @@ SongList.prototype.getTracks = function(){
           } else {
             // Retry in retry-after or retry_ms seconds
             if(!error && response.statusCode == 429){
-              setTimeout(runRequest(url), response['retry-after']);
+              setTimeout(runRequest(url), response.headers['retry-after']*1000);
             } else {
               console.log("Warning: Error has ocurred: " + error + " .:. Retrying in seconds");
               setTimeout(runRequest(url), self.retry_ms);
@@ -187,10 +187,12 @@ SongList.prototype.downloadPreviewTrack = function(index, callback){
       file.close(callback);
     });
   }).on('error', function(err) {
-    // Delete the file async.
-    fs.unlink(file_path);
+    // Delete the file
+    fs.unlinkSync(file_path);
+
     // Print error
     console.log(err);
+
     // Retry after retry_seconds
     setTimeout(self.downloadPreviewTrack(index), self.retry_ms);
   });
@@ -256,7 +258,7 @@ SongList.prototype.downloadAudioFeatures = function(callback){
         } else {
           // Retry in retry-after or retry_ms seconds
           if(!err && resp.statusCode == 429){
-            setTimeout(runRequest(url), resp['retry-after']);
+            setTimeout(runRequest(url), resp.headers['retry-after']*1000);
           } else {
             setTimeout(runRequest(url), self.retry_ms);
           }
