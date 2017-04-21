@@ -26,7 +26,25 @@ $ npm install && bower install
 
 #### Create your app on the Spotify developer page
 
-*@TO-DO*
+1. Go to the [Spotify developer](https://developer.spotify.com/) page and click in the "My apps" tab
+2. Click on the "Create an app" button
+3. Fill the information as the following
+
+<p align="center">
+<img src="assets/screen_1.png">
+</p>
+
+4. Add the URL http://localhost:8888/callback to your Redirect URIs
+
+<p align="center">
+<img src="assets/screen_2.png">
+</p>
+
+5. Save your Client ID and Client Secret. Don't forget to save this edit before leaving the page
+
+<p align="center">
+<img src="assets/screen_3.png">
+</p>
 
 #### Create the env file
 
@@ -49,13 +67,11 @@ $ node learnfy
 or if you already have an bkp file and want to create an exact dataset of it:
 
 ```bash
-$ node learnfy --restore mybkpfile.bkp
+(@TO-DO)$ node learnfy --restore mybkpfile.bkp
 ```
 
 Where *mybkpfile.bkp* is the path to your backup file.
 
-### Contributing
-
 ### Legal information
 
-### Demos
+> Read carefuly the [Terms of Use](https://developer.spotify.com/developer-terms-of-use/) of the Spotify API
