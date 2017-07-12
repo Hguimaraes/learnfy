@@ -90,9 +90,9 @@ SongList.prototype.getTracks = function(){
             tracks.map(function(value, index){
               // if the id is not already in the structure
               var picked = self.tracksSet.tracks.find(x => x.id === value.id);
-
+              
               // Save the tracks Id
-              if(!picked){
+              if(!picked && value.preview_url){
                 self.tracksSet.tracks.push({
                   'id': value.id,
                   'preview_url': value.preview_url,
